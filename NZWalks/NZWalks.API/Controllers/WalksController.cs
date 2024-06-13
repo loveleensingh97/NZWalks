@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using NZWalks.API.CustomActionFilters;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTOs;
 using NZWalks.API.Repository;
@@ -23,6 +24,7 @@ namespace NZWalks.API.Controllers
         //CREATE Walk
         //POST: https://localhost:7036/api/walks
         [HttpPost]
+        [ValidateModel]
         public async Task<IActionResult> Create([FromBody] AddWalkRequestDto addWalkRequestDto)
         {
             //Map AddWalkRequestDto DTO to Walk Domain Model
@@ -33,15 +35,15 @@ namespace NZWalks.API.Controllers
             //Map Domain Model to Dto
             var walkDto = mapper.Map<WalkDto>(walkDomainModel);
 
-            return Ok(walkDto);
+            return Ok(walkDto);         
         }
 
         //Get Walk
-        //GET: https://localhost:7036/api/walks
+        //GET: https://localhost:7036/api/walks?filterOn=Name&filterQuery=Track&sortBy=Name&isAscending=true&pageNumber=1&pageSize=10
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? filterOn, [FromQuery] string? filterQuery, [FromQuery] string? sortBy, [FromQuery] bool? isAscending, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 1000)
         {
-            var walkDomainModel = await walkRepository.GetAllAsync();
+            var walkDomainModel = await walkRepository.GetAllAsync(filterOn, filterQuery, sortBy, isAscending ?? true, pageNumber, pageSize);
 
             //Map Domain Model to Dto
             var walkDto = mapper.Map<List<WalkDto>>(walkDomainModel);
@@ -70,6 +72,7 @@ namespace NZWalks.API.Controllers
         //PUT: https://localhost:7036/api/walks/{id}
         [HttpPut]
         [Route("{id}")]
+        [ValidateModel]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateWalkRequestDto updateWalkRequestDto)
         {
             //Map DTO to Domain Model
