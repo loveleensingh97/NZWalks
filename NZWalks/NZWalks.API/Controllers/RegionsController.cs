@@ -8,41 +8,55 @@ using NZWalks.API.Data;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTOs;
 using NZWalks.API.Repository;
+using System.Text.Json;
 
 namespace NZWalks.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class RegionsController : ControllerBase
     {
         //private readonly NZWalksDbContext _dbContext;
         private readonly IRegionRepository regionRepository;
         private readonly IMapper mapper;
+        private readonly ILogger<RegionsController> logger;
 
-        public RegionsController(/* NZWalksDbContext dbContext, */ IRegionRepository regionRepository, IMapper mapper)
+        public RegionsController(/* NZWalksDbContext dbContext, */ IRegionRepository regionRepository, IMapper mapper, ILogger<RegionsController> logger)
         {
             //this._dbContext = dbContext;
             this.regionRepository = regionRepository;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         //GET ALL REGIONS
         //GET: https://localhost:7036/api/regions
         [HttpGet]
+        [Authorize(Roles = "Reader")]
         public async Task<IActionResult> GetAll()
         {
-            //Get Data from Database - Domain Models
-            var regionsDomain = await regionRepository.GetAllAsync();
+            try
+            {
+                //Get Data from Database - Domain Models
+                var regionsDomain = await regionRepository.GetAllAsync();
 
-            //Map Domain Models to DTOs & Return DTOs
-            return Ok(mapper.Map<List<RegionDto>>(regionsDomain));
+                //Map Domain Models to DTOs & Return DTOs
+                logger.LogInformation($"Finished GetAllRegions request with data: {JsonSerializer.Serialize(regionsDomain)}");
+
+                return Ok(mapper.Map<List<RegionDto>>(regionsDomain));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                throw;
+            }            
         }
 
         //GET Region By Id
         //GET: https://localhost:7036/api/regions/{id}
         [HttpGet]
         [Route("{id}")]
+        [Authorize(Roles = "Reader")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
             //var region = _dbContext.Regions.Find(id);//Find method works only with primary key
@@ -62,6 +76,7 @@ namespace NZWalks.API.Controllers
         //POST: https://localhost:7036/api/regions
         [HttpPost]
         [ValidateModel]
+        [Authorize(Roles = "Writer")]
         public async Task<IActionResult> Create([FromBody] AddRegionRequestDto addRegionRequestDto)
         {
             //Map or Convert DTOs to Domain Model
@@ -81,6 +96,7 @@ namespace NZWalks.API.Controllers
         [HttpPut]
         [Route("{id}")]
         [ValidateModel]
+        [Authorize(Roles = "Writer")]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRegionRequestDto updateRegionRequestDto)
         {
             //Map DTO to Domain Model
@@ -104,6 +120,7 @@ namespace NZWalks.API.Controllers
         //DELETE: https://localhost:7036/api/regions/{id}
         [HttpDelete]
         [Route("{id}")]
+        [Authorize(Roles = "Writer, Reader")]
         public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
             var regionDomainModel = await regionRepository.DeleteAsync(id);
